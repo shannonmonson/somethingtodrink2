@@ -12,7 +12,7 @@ export default function Navigation() {
     { to: '/', icon: Camera, label: 'Feed' },
     { to: '/map', icon: Globe, label: 'Map' },
     { to: `/profile/${user?.uid}`, icon: User, label: 'Profile' },
-    { to: '/search', icon: SearchIcon, label: 'Find Sippers' },
+    { to: '/search', icon: SearchIcon, label: 'Sippers' },
   ];
 
   return (
@@ -36,7 +36,7 @@ export default function Navigation() {
       </nav>
 
       {/* Desktop Sidebar Nav */}
-      <nav className="w-80 bg-bg-alt border-r border-border-subtle flex flex-col p-10 shrink-0 sticky top-0 h-screen hidden md:flex">
+      <nav className="w-80 bg-bg-alt border-r border-border-subtle flex flex-col p-10 shrink-0 sticky top-0 h-dvh hidden md:flex">
         <div className="mb-10">
           <h1 
             onClick={() => navigate('/')}

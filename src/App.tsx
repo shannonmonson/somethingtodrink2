@@ -143,15 +143,15 @@ export default function App() {
       <AuthContext.Provider value={{ user, profile, loading }}>
         <Router>
           <MapKeyGuard apiKey={API_KEY}>
-            <div className="h-screen bg-bg-base flex flex-col md:flex-row overflow-hidden">
+            <div className="h-dvh bg-bg-base flex flex-col md:flex-row overflow-hidden">
               {user && <Navigation />}
               <main className="flex-1 pb-20 md:pb-0 overflow-y-auto overflow-x-hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
                 <Routes>
                   <Route path="/auth" element={!user ? <Auth /> : <Navigate to="/" />} />
-                  <Route path="/" element={user ? <Feed /> : <Navigate to="/" />} />
-                  <Route path="/profile/:userId" element={user ? <Profile /> : <Navigate to="/" />} />
-                  <Route path="/map" element={user ? <MapView /> : <Navigate to="/" />} />
-                  <Route path="/search" element={user ? <Search /> : <Navigate to="/" />} />
+                  <Route path="/" element={user ? <Feed /> : <Navigate to="/auth" />} />
+                  <Route path="/profile/:userId" element={user ? <Profile /> : <Navigate to="/auth" />} />
+                  <Route path="/map" element={user ? <MapView /> : <Navigate to="/auth" />} />
+                  <Route path="/search" element={user ? <Search /> : <Navigate to="/auth" />} />
                 </Routes>
               </main>
             </div>
