@@ -503,36 +503,38 @@ export default function MapView() {
                     onRemove={removeLocation}
                     onSelect={selectLocation}
                     onSave={saveToWishlist}
+                    isOpen={selectedLocation?.id === loc.id}
+                    onClose={() => setSelectedLocation(null)}
                   />
                 ))}
               </Map>
               
               {/* Floating Find a Sip Buttons */}
-              <div className="absolute top-24 left-6 z-[1000] flex flex-col gap-3">
+              <div className="absolute top-24 left-4 z-[1000] flex flex-col gap-2">
                 <button
                   onClick={() => discoverNearby('coffee')}
-                  className="bg-white border-4 border-brand-primary p-3 flex items-center justify-start hover:scale-110 active:scale-95 transition-all shadow-[8px_8px_0px_0px_rgba(0,0,0,0.1)] group overflow-hidden"
+                  className="bg-white border-2 md:border-4 border-brand-primary p-2 md:p-3 flex items-center justify-start hover:scale-110 active:scale-95 transition-all shadow-[6px_6px_0px_0px_rgba(0,0,0,0.1)] group overflow-hidden"
                 >
-                  <Coffee className="text-brand-primary group-hover:rotate-12 transition-transform" size={20} strokeWidth={3} />
-                  <span className="ml-3 text-[10px] font-sans font-black uppercase tracking-widest text-brand-primary pr-2">Find Coffee Nearby</span>
+                  <Coffee className="text-brand-primary group-hover:rotate-12 transition-transform" size={16} strokeWidth={3} />
+                  <span className="ml-2.5 text-[8px] md:text-[10px] font-sans font-black uppercase tracking-widest text-brand-primary pr-1">Find Coffee Nearby</span>
                 </button>
                 <button
                   onClick={() => discoverNearby('drink')}
-                  className="bg-white border-4 border-brand-primary p-3 flex items-center justify-start hover:scale-110 active:scale-95 transition-all shadow-[8px_8px_0px_0px_rgba(0,0,0,0.1)] group overflow-hidden"
+                  className="bg-white border-2 md:border-4 border-brand-primary p-2 md:p-3 flex items-center justify-start hover:scale-110 active:scale-95 transition-all shadow-[6px_6px_0px_0px_rgba(0,0,0,0.1)] group overflow-hidden"
                 >
-                  <Martini className="text-brand-primary group-hover:-rotate-12 transition-transform" size={20} strokeWidth={3} />
-                  <span className="ml-3 text-[10px] font-sans font-black uppercase tracking-widest text-brand-primary pr-2">Find a Drink Nearby</span>
+                  <Martini className="text-brand-primary group-hover:-rotate-12 transition-transform" size={16} strokeWidth={3} />
+                  <span className="ml-2.5 text-[8px] md:text-[10px] font-sans font-black uppercase tracking-widest text-brand-primary pr-1">Find a Drink Nearby</span>
                 </button>
               </div>
 
               {/* Floating Search Bar */}
-              <div className="absolute top-6 left-6 right-6 z-[1000] flex justify-center pointer-events-none">
-                <div className="w-full max-w-md pointer-events-auto group">
+              <div className="absolute top-4 left-4 right-4 z-[1000] flex justify-center pointer-events-none">
+                <div className="w-full max-w-sm pointer-events-auto group">
                    <div className="relative transform hover:-rotate-1 transition-transform duration-500">
-                     <div className="absolute inset-0 bg-brand-primary translate-x-2 translate-y-2 opacity-50 group-focus-within:translate-x-3 group-focus-within:translate-y-3 transition-all"></div>
-                     <div className="relative bg-white border-4 border-brand-primary overflow-hidden">
-                       <div className="absolute left-6 top-1/2 -translate-y-1/2 text-brand-primary pointer-events-none z-10">
-                         <Search size={18} strokeWidth={3} />
+                     <div className="absolute inset-0 bg-brand-primary translate-x-1.5 translate-y-1.5 opacity-50 group-focus-within:translate-x-2 group-focus-within:translate-y-2 transition-all"></div>
+                     <div className="relative bg-white border-2 md:border-4 border-brand-primary overflow-hidden">
+                       <div className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-primary pointer-events-none z-10">
+                         <Search size={14} strokeWidth={3} />
                        </div>
                        <PlaceAutocomplete 
                          value={name}
@@ -833,15 +835,18 @@ function MarkerWithInfoWindow({
   location, 
   onRemove,
   onSelect,
-  onSave
+  onSave,
+  isOpen,
+  onClose
 }: { 
   location: any, 
   onRemove: (id: string) => void,
   onSelect: (loc: any) => void,
-  onSave?: (loc: any) => void
+  onSave?: (loc: any) => void,
+  isOpen: boolean,
+  onClose: () => void
 }) {
   const [markerRef, marker] = useAdvancedMarkerRef();
-  const [open, setOpen] = useState(false);
 
   const getIcon = () => {
     if (location.status === 'discover') return <Sparkles size={18} strokeWidth={3} />;
@@ -860,7 +865,6 @@ function MarkerWithInfoWindow({
         ref={markerRef}
         position={{ lat: location.lat, lng: location.lng }}
         onClick={() => {
-          setOpen(true);
           onSelect(location);
         }}
       >
@@ -871,10 +875,10 @@ function MarkerWithInfoWindow({
           {getIcon()}
         </div>
       </AdvancedMarker>
-      {open && (
+      {isOpen && (
         <InfoWindow
           anchor={marker}
-          onCloseClick={() => setOpen(false)}
+          onCloseClick={() => onClose()}
         >
           <div className="p-2 min-w-[150px]">
              <h4 className="font-display uppercase tracking-tight text-brand-primary text-sm mb-1">

@@ -99,14 +99,14 @@ export default function Search() {
         </p>
       </header>
 
-      <div className="relative mb-16">
-        <SearchIcon className="absolute left-6 top-1/2 -translate-y-1/2 text-brand-primary opacity-50" size={24} strokeWidth={3} />
+      <div className="relative mb-12 max-w-2xl mx-auto">
+        <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-primary opacity-50" size={18} strokeWidth={3} />
         <input
           type="text"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder="SEARCH BY NAME..."
-          className="w-full bg-white border-4 border-brand-primary pl-16 pr-8 py-6 text-sm md:text-xl font-display uppercase tracking-widest outline-none shadow-[12px_12px_0px_0px_rgba(0,0,0,0.1)] focus:shadow-[8px_8px_0px_0px_rgba(240,111,82,0.3)] transition-all placeholder:text-brand-primary/10"
+          className="w-full bg-white border-2 md:border-4 border-brand-primary pl-12 pr-6 py-4 text-xs md:text-base font-display uppercase tracking-widest outline-none shadow-[8px_8px_0px_0px_rgba(0,0,0,0.1)] focus:shadow-[4px_4px_0px_0px_rgba(240,111,82,0.3)] transition-all placeholder:text-brand-primary/10"
         />
         {loading && (
           <div className="absolute right-6 top-1/2 -translate-y-1/2">

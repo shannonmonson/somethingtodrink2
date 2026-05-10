@@ -27,13 +27,27 @@ service cloud.firestore {
     match /posts/{postId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && isOwner(incoming().userId) && isValidPost(incoming());
+      allow update: if isSignedIn() && isOwner(existing().userId) && isValidPost(incoming());
       allow delete: if isSignedIn() && isOwner(existing().userId);
     }
 
     function isValidPost(data) {
       return data.userId == request.auth.uid &&
              data.drinkName is string && data.drinkName.size() <= 200 &&
-             data.imageUrl is string && data.imageUrl.size() <= 1000000;
+             data.imageUrl is string && data.imageUrl.size() <= 1000000 &&
+             (!('collectionIds' in data) || (data.collectionIds is list));
+    }
+
+    match /collections/{collectionId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isOwner(incoming().userId) && isValidCollection(incoming());
+      allow update: if isSignedIn() && isOwner(existing().userId) && isValidCollection(incoming());
+      allow delete: if isSignedIn() && isOwner(existing().userId);
+    }
+
+    function isValidCollection(data) {
+      return data.userId == request.auth.uid &&
+             data.name is string && data.name.size() <= 200;
     }
 
     match /follows/{followId} {

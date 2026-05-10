@@ -18,19 +18,19 @@ export default function Navigation() {
   return (
     <>
       {/* Mobile Bottom Nav */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-bg-base border-t border-border-subtle px-6 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))] flex justify-between items-center z-[100] md:hidden">
+      <nav className="fixed bottom-0 left-0 right-0 bg-bg-base border-t border-border-subtle px-8 pt-2 pb-[calc(8px+env(safe-area-inset-bottom))] flex justify-between items-center z-[100] md:hidden">
         {links.map(({ to, icon: Icon, label }) => (
           <NavLink
             key={to}
             to={to}
             className={({ isActive }) =>
-              `flex flex-col items-center gap-1 transition-colors ${
+              `flex flex-col items-center gap-0.5 transition-colors ${
                 isActive ? 'text-brand-primary' : 'text-text-muted'
               }`
             }
           >
-            <Icon size={24} strokeWidth={2.5} />
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em] font-display">{label}</span>
+            <Icon size={20} strokeWidth={2} />
+            <span className="text-[8px] font-bold uppercase tracking-[0.3em] font-display">{label}</span>
           </NavLink>
         ))}
       </nav>

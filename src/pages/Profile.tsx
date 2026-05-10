@@ -4,7 +4,7 @@ import { db, handleFirestoreError, OperationType, auth } from '../lib/firebase';
 import { doc, getDoc, collection, query, where, orderBy, onSnapshot, addDoc, deleteDoc, getDocs, serverTimestamp, updateDoc, setDoc } from 'firebase/firestore';
 import { UserProfile, Post as PostType } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { Grid, MapPin, Loader2, UserPlus, UserMinus, Trash2, Settings, X, Camera, Save, Info } from 'lucide-react';
+import { Grid, MapPin, Loader2, UserPlus, UserMinus, Trash2, Settings, X, Camera, Save, Info, Folder, Sparkles } from 'lucide-react';
 import { useAuth } from '../App';
 import { compressImage } from '../lib/imageUtils';
 
@@ -32,6 +32,9 @@ export default function Profile() {
   const [showWishlistSection, setShowWishlistSection] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
+  const [collections, setCollections] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'posts' | 'wishlist' | 'collections'>('posts');
+  const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!userId) return;
@@ -108,6 +111,23 @@ export default function Profile() {
       console.log("Wishlist access restricted or error:", error);
     });
 
+    // Fetch Collections
+    const collectionsQ = query(
+      collection(db, 'collections'),
+      where('userId', '==', userId),
+      orderBy('createdAt', 'desc')
+    );
+
+    const unsubscribeCollections = onSnapshot(collectionsQ, (snapshot) => {
+      const collectionData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setCollections(collectionData);
+    }, (error) => {
+      console.error("Collections fetch error:", error);
+    });
+
     // Check Following Status and get counts
     if (userId) {
       const followersQuery = query(
@@ -139,10 +159,19 @@ export default function Profile() {
       });
 
       return () => {
+        unsubscribe();
+        unsubscribeWishlist();
+        unsubscribeCollections();
         unsubscribeFollowers();
         unsubscribeFollowing();
       };
     }
+
+    return () => {
+      unsubscribe();
+      unsubscribeWishlist();
+      unsubscribeCollections();
+    };
   }, [userId, currentUser]);
 
   const toggleFollow = async () => {
@@ -398,21 +427,59 @@ export default function Profile() {
       </header>
 
       <div className="border-t-[4px] border-brand-primary pt-12">
-        <div className="flex items-center justify-between mb-8 px-4">
-          <div className="flex items-center gap-4">
-            <div className="w-8 h-8 bg-brand-primary text-white flex items-center justify-center -rotate-6">
-              <Grid size={18} strokeWidth={3} />
-            </div>
-            <div className="flex flex-col text-left">
-              <span className="text-[10px] uppercase tracking-[0.4em] font-black text-text-muted">Past Sips</span>
-              <span className="text-[9px] uppercase tracking-[0.1em] text-brand-primary font-bold">The Collection</span>
-            </div>
+        <div className="flex flex-wrap justify-between items-end mb-12 gap-6">
+          <div className="flex gap-4 md:gap-8">
+            <button 
+              onClick={() => {
+                setActiveTab('posts');
+                setSelectedCollectionId(null);
+              }}
+              className={`group flex flex-col items-center transition-all ${activeTab === 'posts' && !selectedCollectionId ? 'opacity-100' : 'opacity-40 hover:opacity-100'}`}
+            >
+              <div className={`w-12 h-12 flex items-center justify-center transition-all border-2 ${activeTab === 'posts' && !selectedCollectionId ? 'bg-brand-primary text-white border-brand-primary -rotate-6' : 'bg-white text-brand-primary border-brand-primary/10 rotate-0'}`}>
+                <Grid size={24} strokeWidth={3} />
+              </div>
+              <span className={`text-[9px] uppercase tracking-[0.3em] font-black mt-3 ${activeTab === 'posts' && !selectedCollectionId ? 'text-brand-primary' : 'text-text-muted'}`}>LOG</span>
+            </button>
+
+            <button 
+              onClick={() => setActiveTab('collections')}
+              className={`group flex flex-col items-center transition-all ${activeTab === 'collections' ? 'opacity-100' : 'opacity-40 hover:opacity-100'}`}
+            >
+              <div className={`w-12 h-12 flex items-center justify-center transition-all border-2 ${activeTab === 'collections' ? 'bg-brand-primary text-white border-brand-primary -rotate-6' : 'bg-white text-brand-primary border-brand-primary/10 rotate-0'}`}>
+                <Folder size={24} strokeWidth={3} />
+              </div>
+              <span className={`text-[9px] uppercase tracking-[0.3em] font-black mt-3 ${activeTab === 'collections' ? 'text-brand-primary' : 'text-text-muted'}`}>COLLECTIONS</span>
+            </button>
+
+            {showWishlistSection && (
+              <button 
+                onClick={() => setActiveTab('wishlist')}
+                className={`group flex flex-col items-center transition-all ${activeTab === 'wishlist' ? 'opacity-100' : 'opacity-40 hover:opacity-100'}`}
+              >
+                <div className={`w-12 h-12 flex items-center justify-center transition-all border-2 ${activeTab === 'wishlist' ? 'bg-brand-primary text-white border-brand-primary -rotate-6' : 'bg-white text-brand-primary border-brand-primary/10 rotate-0'}`}>
+                  <Sparkles size={24} strokeWidth={3} />
+                </div>
+                <span className={`text-[9px] uppercase tracking-[0.3em] font-black mt-3 ${activeTab === 'wishlist' ? 'text-brand-primary' : 'text-text-muted'}`}>TO SIP LIST</span>
+              </button>
+            )}
           </div>
-          <span className="text-[10px] uppercase tracking-[0.2em] text-text-muted font-black opacity-40">Grid View</span>
+
+          <div className="flex flex-col text-right ink-bleed">
+            <span className="text-[10px] uppercase tracking-[0.4em] font-black text-text-muted">
+              {activeTab === 'posts' ? (selectedCollectionId ? collections.find(c => c.id === selectedCollectionId)?.name : 'LOG') : activeTab === 'collections' ? 'COLLECTIONS' : 'TO SIP LIST'}
+            </span>
+            <span className="text-[9px] uppercase tracking-[0.1em] text-brand-primary font-bold">
+               {activeTab === 'posts' ? `Showing ${posts.filter(p => !selectedCollectionId || (p.collectionIds && p.collectionIds.includes(selectedCollectionId))).length} entries` : activeTab === 'collections' ? `${collections.length} Collections` : `${wishlist.length} Spots`}
+            </span>
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {posts.map((post, idx) => (
+        {activeTab === 'posts' && (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {posts
+              .filter(post => !selectedCollectionId || (post.collectionIds && post.collectionIds.includes(selectedCollectionId)))
+              .map((post, idx) => (
             <motion.div
               key={post.id}
               initial={{ opacity: 0, y: 20 }}
@@ -489,33 +556,69 @@ export default function Profile() {
             </motion.div>
           ))}
         </div>
+      )}
 
-        {posts.length === 0 && (
+        {activeTab === 'posts' && posts.filter(p => !selectedCollectionId || (p.collectionIds && p.collectionIds.includes(selectedCollectionId))).length === 0 && (
           <div className="text-center py-40 bg-bg-alt border-4 border-dashed border-brand-primary -rotate-1">
             <p className="text-text-muted font-display text-4xl uppercase tracking-tighter opacity-40">The collection is currently empty.</p>
           </div>
         )}
 
-        {showWishlistSection && wishlist.length > 0 && (
-          <div className="mt-16 pt-12 border-t-[4px] border-brand-primary/20">
-            <div className="flex items-center gap-4 mb-8 px-4">
-              <div className="w-8 h-8 bg-brand-primary text-white flex items-center justify-center rotate-6">
-                <MapPin size={18} strokeWidth={3} />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] uppercase tracking-[0.4em] font-black text-text-muted">Future Sips</span>
-                <span className="text-[9px] uppercase tracking-[0.1em] text-brand-primary font-bold">Wishlist places to discover</span>
-              </div>
-            </div>
+        {activeTab === 'collections' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {collections.map((col, idx) => {
+              const collectionSips = posts.filter(p => p.collectionIds?.includes(col.id));
+              const coverImage = collectionSips[0]?.imageUrl || `https://picsum.photos/seed/${col.id}/800/600?grayscale`;
+              
+              return (
+                <motion.div
+                  key={col.id}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: idx * 0.1 }}
+                  onClick={() => {
+                    setSelectedCollectionId(col.id);
+                    setActiveTab('posts');
+                  }}
+                  className="group relative bg-white border-2 border-brand-primary p-6 shadow-[12px_12px_0px_0px_rgba(0,0,0,0.05)] hover:shadow-none transition-all cursor-pointer -rotate-1 hover:rotate-0 flex flex-col gap-6"
+                >
+                  <div className="aspect-[4/3] bg-bg-alt border-2 border-brand-primary overflow-hidden relative">
+                    <img src={coverImage} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={col.name} />
+                    <div className="absolute bottom-4 right-4 bg-white border-2 border-brand-primary px-3 py-1 font-display text-[10px] uppercase tracking-widest translate-x-2 translate-y-2 group-hover:translate-x-0 group-hover:translate-y-0 transition-transform shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)]">
+                      {collectionSips.length} Items
+                    </div>
+                  </div>
+                  
+                  <div className="ink-bleed">
+                    <h3 className="text-xl font-display text-brand-primary uppercase tracking-widest underline underline-offset-4 decoration-2">{col.name}</h3>
+                  </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {wishlist.map((loc, idx) => (
+                  <div className="mt-auto flex items-center justify-between">
+                     <span className="text-[8px] font-black uppercase tracking-[0.2em] text-text-muted">Set</span>
+                     <div className="w-8 h-8 rounded-full border-2 border-brand-primary flex items-center justify-center text-brand-primary group-hover:bg-brand-primary group-hover:text-white transition-colors">
+                        <Folder size={14} strokeWidth={3} />
+                     </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+            {collections.length === 0 && (
+              <div className="col-span-full text-center py-40 bg-bg-alt border-4 border-dashed border-brand-primary rotate-1">
+                <p className="text-text-muted font-display text-4xl uppercase tracking-tighter opacity-40">No curated sets yet.</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'wishlist' && (
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
+            {wishlist.map((loc, idx) => (
                 <motion.div
                   key={loc.id}
                   initial={{ opacity: 0, scale: 0.95 }}
                   whileInView={{ opacity: 1, scale: 1 }}
                   viewport={{ once: true }}
-                  className={`bg-white border-2 border-brand-primary p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.05)] hover:shadow-none transition-all ${idx % 2 === 0 ? '-rotate-1' : 'rotate-1'} relative group`}
+                  className={`bg-white border-2 border-brand-primary p-4 md:p-8 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.05)] md:shadow-[8px_8px_0px_0px_rgba(0,0,0,0.05)] hover:shadow-none transition-all ${idx % 2 === 0 ? '-rotate-1' : 'rotate-1'} relative group`}
                 >
                   {currentUser?.uid === userId && (
                     <div className="absolute top-4 right-4 z-20">
@@ -565,17 +668,17 @@ export default function Profile() {
                     )}
                   </div>
 
-                  <h3 className="font-sans font-black text-2xl uppercase tracking-[0.2em] ink-bleed text-brand-primary mb-3 underline underline-offset-4 decoration-2 pr-10">{loc.name}</h3>
+                  <h3 className="font-sans font-black text-sm md:text-2xl uppercase tracking-[0.2em] ink-bleed text-brand-primary mb-3 underline underline-offset-4 decoration-2 pr-10">{loc.name}</h3>
                   
                   {loc.city && (
-                    <p className="text-[10px] font-black uppercase tracking-widest text-text-muted mb-4 flex items-center gap-2">
-                       <MapPin size={12} className="text-brand-primary" />
+                    <p className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-text-muted mb-4 flex items-center gap-2">
+                       <MapPin size={10} className="text-brand-primary" />
                        {loc.city}
                     </p>
                   )}
 
                   {loc.description && (
-                    <p className="text-[10px] text-text-main font-bold opacity-70 leading-relaxed line-clamp-3 mb-6 font-sans uppercase tracking-[0.2em]">
+                    <p className="text-[8px] md:text-[10px] text-text-main font-bold opacity-70 leading-relaxed line-clamp-3 mb-6 font-sans uppercase tracking-[0.2em]">
                       {loc.description}
                     </p>
                   )}
@@ -596,7 +699,7 @@ export default function Profile() {
                     {loc.openingHours && loc.openingHours.length > 0 ? (
                       <div className="pt-2">
                         <span className="text-[9px] font-sans font-black uppercase tracking-[0.3em] text-brand-primary mb-3 block">Current Hours</span>
-                        <div className="space-y-1.5 bg-bg-alt/50 p-4 border border-brand-primary/5">
+                        <div className="space-y-1 bg-bg-alt/50 p-2 md:p-4 border border-brand-primary/5">
                           {loc.openingHours.map((line: string, i: number) => (
                             <p key={i} className="text-[9px] text-text-main uppercase tracking-tight font-medium opacity-80 leading-tight">{line}</p>
                           ))}
@@ -609,7 +712,6 @@ export default function Profile() {
                 </motion.div>
               ))}
             </div>
-          </div>
         )}
       </div>
 
@@ -843,7 +945,7 @@ export default function Profile() {
                          <div className="w-14 h-8 bg-bg-alt border-2 border-brand-primary peer-focus:outline-none ring-4 ring-transparent peer-focus:ring-brand-primary/10 transition-all peer-checked:bg-brand-primary after:content-[''] after:absolute after:top-[6px] after:left-[6px] after:bg-brand-primary peer-checked:after:bg-white after:border-brand-primary after:border after:rounded-none after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-6"></div>
                        </label>
                        <div className="flex flex-col">
-                         <span className="text-[10px] uppercase tracking-[0.2em] text-text-main font-black">Public Wishlist</span>
+                         <span className="text-[10px] uppercase tracking-[0.2em] text-text-main font-black">PUBLIC TO SIP LIST</span>
                          <span className="text-[9px] uppercase tracking-[0.1em] text-text-muted font-medium">Let others see your "Places to Sip"</span>
                        </div>
                     </div>

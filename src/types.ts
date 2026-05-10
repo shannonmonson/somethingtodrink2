@@ -27,6 +27,15 @@ export interface Post {
   locationId?: string;
   latitude?: number;
   longitude?: number;
+  collectionIds?: string[];
+  createdAt: Timestamp;
+}
+
+export interface SipCollection {
+  id?: string;
+  userId: string;
+  name: string;
+  description?: string;
   createdAt: Timestamp;
 }
 

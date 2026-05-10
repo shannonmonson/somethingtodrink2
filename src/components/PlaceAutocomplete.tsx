@@ -77,7 +77,7 @@ export default function PlaceAutocomplete({ onPlaceSelect, onInputChange, value 
         ref={inputRef}
         onChange={(e) => onInputChange?.(e.target.value)}
         placeholder="SEARCH FOR A SPOT..."
-        className="w-full bg-bg-alt border-2 border-brand-primary rounded-none px-8 py-5 text-text-main outline-none focus:ring-4 ring-brand-primary/10 transition-all font-display placeholder:text-text-muted/20 uppercase tracking-tight text-sm"
+        className="w-full bg-bg-alt border-2 border-brand-primary rounded-none px-6 py-3 text-text-main outline-none focus:ring-4 ring-brand-primary/10 transition-all font-display placeholder:text-text-muted/20 uppercase tracking-tight text-xs"
       />
       <style dangerouslySetInnerHTML={{ __html: `
         .pac-container {

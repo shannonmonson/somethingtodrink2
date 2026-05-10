@@ -30,9 +30,22 @@
         "city": { "type": "string" },
         "latitude": { "type": "number" },
         "longitude": { "type": "number" },
+        "collectionIds": { "type": "array", "items": { "type": "string" } },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "drinkName", "imageUrl"]
+    },
+    "SipCollection": {
+      "title": "Sip Collection",
+      "description": "A curated group of past sips",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name"]
     },
     "Follow": {
       "title": "Follow Relationship",
@@ -50,6 +63,10 @@
     "/users/{userId}": {
       "schema": "UserProfile",
       "description": "User profile documents"
+    },
+    "/collections/{collectionId}": {
+      "schema": "SipCollection",
+      "description": "Curated collections of sips"
     },
     "/posts/{postId}": {
       "schema": "Post",

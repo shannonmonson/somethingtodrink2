@@ -4,7 +4,8 @@ import { doc, getDoc, collection, query, where, orderBy, onSnapshot, addDoc, del
 import { Post as PostType } from '../types';
 import { useAuth } from '../App';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Camera, X, ThumbsUp, ThumbsDown, MapPin, Loader2, Trash2, BookmarkPlus, Check } from 'lucide-react';
+import { Plus, Camera, X, ThumbsUp, ThumbsDown, MapPin, Loader2, Trash2, BookmarkPlus, Check, Pencil, FolderPlus } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import PlaceAutocomplete from '../components/PlaceAutocomplete';
 import { compressImage } from '../lib/imageUtils';
 
@@ -35,6 +36,16 @@ export default function Feed() {
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Collections State
+  const [collections, setCollections] = useState<any[]>([]);
+  const [selectedCollectionIds, setSelectedCollectionIds] = useState<string[]>([]);
+  const [isCreatingCollection, setIsCreatingCollection] = useState(false);
+  const [newCollectionName, setNewCollectionName] = useState('');
+  const [creatingCollection, setCreatingCollection] = useState(false);
+
+  // Edit State
+  const [editingPost, setEditingPost] = useState<PostType | null>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -98,27 +109,77 @@ export default function Feed() {
     return () => unsubscribe();
   }, [user, followedIds]);
 
+  // Collections Query
+  useEffect(() => {
+    if (!user) return;
+    const q = query(
+      collection(db, 'collections'),
+      where('userId', '==', user.uid),
+      orderBy('createdAt', 'desc')
+    );
+    
+    return onSnapshot(q, (snap) => {
+      const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setCollections(data);
+    });
+  }, [user]);
+
+  const handleCreateCollection = async () => {
+    if (!user || !newCollectionName.trim()) return;
+    setCreatingCollection(true);
+    try {
+      const docRef = await addDoc(collection(db, 'collections'), {
+        userId: user.uid,
+        name: newCollectionName.trim(),
+        createdAt: serverTimestamp(),
+      });
+      setSelectedCollectionIds(prev => [...prev, docRef.id]);
+      setNewCollectionName('');
+      setIsCreatingCollection(false);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, 'collections');
+    } finally {
+      setCreatingCollection(false);
+    }
+  };
+
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !profile) return;
     setSubmitting(true);
 
     try {
-      await addDoc(collection(db, 'posts'), {
-        userId: user.uid,
-        userName: profile.displayName,
-        userPhoto: profile.photoURL,
-        drinkName,
-        category,
-        caption,
-        imageUrl: previewUrl || imageUrl || `https://picsum.photos/seed/${Math.random()}/600/800`, 
-        locationName,
-        city,
-        latitude: lat,
-        longitude: lng,
-        createdAt: serverTimestamp(),
-      });
+      if (editingPost) {
+        const { updateDoc } = await import('firebase/firestore');
+        await updateDoc(doc(db, 'posts', editingPost.id!), {
+          drinkName,
+          category,
+          caption,
+          collectionIds: selectedCollectionIds,
+          locationName,
+          city,
+          latitude: lat,
+          longitude: lng,
+        });
+      } else {
+        await addDoc(collection(db, 'posts'), {
+          userId: user.uid,
+          userName: profile.displayName,
+          userPhoto: profile.photoURL,
+          drinkName,
+          category,
+          caption,
+          imageUrl: previewUrl || imageUrl || `https://picsum.photos/seed/${Math.random()}/600/800`, 
+          locationName,
+          city,
+          latitude: lat,
+          longitude: lng,
+          collectionIds: selectedCollectionIds,
+          createdAt: serverTimestamp(),
+        });
+      }
       setIsCreating(false);
+      setEditingPost(null);
       // Reset form
       setDrinkName('');
       setCategory('Coffee');
@@ -130,11 +191,27 @@ export default function Feed() {
       setCity('');
       setLat(null);
       setLng(null);
+      setSelectedCollectionIds([]);
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, 'posts');
+      handleFirestoreError(error, editingPost ? OperationType.UPDATE : OperationType.CREATE, 'posts');
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleEditPost = (post: PostType) => {
+    setEditingPost(post);
+    setDrinkName(post.drinkName);
+    setCategory(post.category || 'Coffee');
+    setCaption(post.caption || '');
+    setPreviewUrl(post.imageUrl);
+    setImageUrl(post.imageUrl);
+    setLocationName(post.locationName || '');
+    setCity(post.city || '');
+    setLat(post.latitude || null);
+    setLng(post.longitude || null);
+    setSelectedCollectionIds(post.collectionIds || []);
+    setIsCreating(true);
   };
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -192,6 +269,22 @@ export default function Feed() {
     }
   };
 
+  const closeModal = () => {
+    setIsCreating(false);
+    setEditingPost(null);
+    setDrinkName('');
+    setCategory('Coffee');
+    setCaption('');
+    setSelectedFile(null);
+    setPreviewUrl(null);
+    setImageUrl('');
+    setLocationName('');
+    setCity('');
+    setLat(null);
+    setLng(null);
+    setSelectedCollectionIds([]);
+  };
+
   return (
     <div className="max-w-lg mx-auto px-6 py-12 relative min-h-screen">
       <div className="flex justify-between items-end mb-16 px-2">
@@ -225,11 +318,15 @@ export default function Feed() {
                 className="group"
               >
                 <div className="flex items-center gap-6 mb-8 px-4">
-                  <div className="w-12 h-12 transform rotate-3 overflow-hidden border-2 border-brand-primary shadow-sm bg-bg-alt flex-shrink-0">
-                    <img src={post.userPhoto} alt={post.userName} className="w-full h-full object-cover" />
-                  </div>
+                  <Link to={`/profile/${post.userId}`} className="block transform transition-transform hover:scale-105 active:scale-95">
+                    <div className="w-12 h-12 transform rotate-3 overflow-hidden border-2 border-brand-primary shadow-sm bg-bg-alt flex-shrink-0">
+                      <img src={post.userPhoto} alt={post.userName} className="w-full h-full object-cover" />
+                    </div>
+                  </Link>
                   <div className="ink-bleed">
-                    <span className="block font-sans font-bold text-[10px] tracking-[0.2em] uppercase">{post.userName}</span>
+                    <Link to={`/profile/${post.userId}`} className="block group/name">
+                      <span className="block font-sans font-bold text-[10px] tracking-[0.2em] uppercase group-hover/name:text-brand-primary transition-colors">{post.userName}</span>
+                    </Link>
                     <span className="text-[10px] text-text-muted uppercase tracking-widest font-black opacity-60">
                       {post.createdAt?.toDate?.()?.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                     </span>
@@ -237,6 +334,13 @@ export default function Feed() {
                   <div className="ml-auto flex items-center gap-4">
                     {user?.uid === post.userId && (
                       <div className="flex items-center">
+                        <button
+                          onClick={() => handleEditPost(post)}
+                          className="p-3 text-text-muted hover:text-brand-primary hover:bg-brand-primary/5 rounded-none transition-all flex items-center justify-center border-2 border-transparent hover:border-brand-primary/10 mr-1"
+                          title="Edit Post"
+                        >
+                          <Pencil size={18} strokeWidth={2.5} />
+                        </button>
                         {deletingId === post.id ? (
                           <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-2">
                             <button
@@ -273,7 +377,7 @@ export default function Feed() {
                             ? 'bg-green-50 text-green-600 border-green-200'
                             : 'text-text-muted hover:text-brand-primary hover:bg-brand-primary/5 border-transparent hover:border-brand-primary/10'
                         }`}
-                        title="Add to Wishlist"
+                        title="Add to List"
                       >
                         {wishlistingIds.has(post.id!) ? (
                           <Loader2 size={18} strokeWidth={2.5} className="animate-spin" />
@@ -343,10 +447,7 @@ export default function Feed() {
                       </div>
                       <div className="flex flex-col items-start">
                         <span className="text-[10px] font-black uppercase tracking-[0.3em] text-text-muted group-hover/btn:text-brand-primary transition-colors">
-                          {expandedNotes[post.id] ? 'Collapse' : 'Notes'}
-                        </span>
-                        <span className="text-[8px] uppercase tracking-[0.1em] text-text-muted opacity-50">
-                          {expandedNotes[post.id] ? 'Close entry' : 'Read session notes'}
+                          {expandedNotes[post.id] ? 'COLLAPSE' : 'SIPPER NOTES'}
                         </span>
                       </div>
                     </button>
@@ -360,7 +461,7 @@ export default function Feed() {
                           className="overflow-hidden"
                         >
                           <div className="mt-12 px-8 border-l-[6px] border-brand-primary py-2">
-                            <p className="text-text-main text-2xl font-light leading-relaxed opacity-90 italic organic-text">
+                            <p className="text-text-main text-sm font-light leading-relaxed opacity-90 italic organic-text">
                               "{post.caption}"
                             </p>
                             <div className="mt-6 flex items-center gap-3">
@@ -392,7 +493,7 @@ export default function Feed() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setIsCreating(false)}
+              onClick={closeModal}
               className="absolute inset-0 bg-bg-base/95 backdrop-blur-md"
             />
             <motion.div
@@ -402,15 +503,15 @@ export default function Feed() {
               className="relative w-full max-w-lg bg-white rounded-[40px] p-8 shadow-[0_32px_64px_-16px_rgba(90,90,64,0.15)] border border-border-subtle overflow-y-auto max-h-[90vh]"
             >
               <button 
-                onClick={() => setIsCreating(false)}
+                onClick={closeModal}
                 className="absolute top-6 right-6 text-brand-primary hover:scale-110 transition-transform"
               >
                 <X size={24} strokeWidth={3} />
               </button>
 
               <div className="mb-6 text-center ink-bleed">
-                <span className="text-[9px] uppercase tracking-[0.4em] text-brand-primary font-black opacity-60">Sip Log</span>
-                <h2 className="text-2xl font-display text-text-main mt-1 uppercase tracking-widest organic-text">Log your drink.</h2>
+                <span className="text-[9px] uppercase tracking-[0.4em] text-brand-primary font-black opacity-60">{editingPost ? 'EDIT LOG' : 'LOG'}</span>
+                <h2 className="text-2xl font-display text-text-main mt-1 uppercase tracking-widest organic-text">{editingPost ? 'Refine your entry.' : 'Log your drink.'}</h2>
               </div>
 
               <form onSubmit={handleCreatePost} className="space-y-5">
@@ -436,7 +537,11 @@ export default function Feed() {
                     accept="image/*" 
                     className="hidden" 
                     onChange={handleFileChange}
+                    disabled={!!editingPost}
                   />
+                  {editingPost && (
+                    <p className="text-[7px] uppercase tracking-widest text-text-muted text-center opacity-50">Images cannot be changed during edit</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -507,12 +612,77 @@ export default function Feed() {
                   />
                 </div>
 
-                <button
-                  disabled={submitting}
-                  className="w-full bg-brand-primary text-white py-4 rounded-none font-display uppercase tracking-[0.3em] text-xs transition-all hover:bg-brand-primary/95 shadow-[6px_6px_0px_0px_rgba(0,0,0,0.1)] active:shadow-none translate-y-[-2px] active:translate-y-0 mt-2"
-                >
-                  {submitting ? 'Sharing...' : 'Share Sip'}
-                </button>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center px-4">
+                    <label className="text-[9px] uppercase tracking-[0.2em] text-text-muted font-black">Add to Sip Collection</label>
+                    <button 
+                      type="button"
+                      onClick={() => setIsCreatingCollection(true)}
+                      className="text-[8px] uppercase tracking-widest text-brand-primary font-black hover:underline"
+                    >
+                      + Create New
+                    </button>
+                  </div>
+
+                  {isCreatingCollection && (
+                    <div className="mx-4 p-4 bg-bg-alt border-2 border-dashed border-brand-primary/20 flex gap-2">
+                       <input 
+                        type="text"
+                        value={newCollectionName}
+                        onChange={(e) => setNewCollectionName(e.target.value)}
+                        placeholder="COLLECTION NAME..."
+                        className="flex-1 bg-white border-2 border-brand-primary px-3 py-2 text-[10px] outline-none font-display uppercase tracking-widest"
+                       />
+                       <button
+                        type="button"
+                        onClick={handleCreateCollection}
+                        disabled={creatingCollection || !newCollectionName.trim()}
+                        className="bg-brand-primary text-white px-4 py-2 text-[10px] font-black uppercase tracking-widest disabled:opacity-50"
+                       >
+                         {creatingCollection ? '...' : 'Add'}
+                       </button>
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap gap-2 px-4 max-h-32 overflow-y-auto">
+                    {collections.length > 0 ? (
+                      collections.map(col => {
+                        const isSelected = selectedCollectionIds.includes(col.id);
+                        return (
+                          <button
+                            key={col.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedCollectionIds(prev => 
+                                isSelected 
+                                  ? prev.filter(id => id !== col.id)
+                                  : [...prev, col.id]
+                              );
+                            }}
+                            className={`px-3 py-1.5 border-2 text-[9px] font-black uppercase tracking-widest transition-all ${
+                              isSelected 
+                                ? 'bg-brand-primary text-white border-brand-primary' 
+                                : 'bg-white text-text-muted border-brand-primary/10 hover:border-brand-primary/30'
+                            }`}
+                          >
+                            {col.name}
+                          </button>
+                        );
+                      })
+                    ) : (
+                      <p className="text-[8px] uppercase tracking-widest text-text-muted opacity-40 py-2">No collections yet. Curate your sips!</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    disabled={submitting || !drinkName || (!previewUrl && !imageUrl && !editingPost)}
+                    className="w-full bg-brand-primary text-white py-4 rounded-none font-display uppercase tracking-[0.3em] text-xs transition-all hover:bg-brand-primary/95 shadow-[6px_6px_0px_0px_rgba(0,0,0,0.1)] active:shadow-none translate-y-[-2px] active:translate-y-0 mt-2"
+                  >
+                    {submitting ? 'Sharing...' : (editingPost ? 'Update Sip' : 'Share Sip')}
+                  </button>
+                </div>
               </form>
             </motion.div>
           </div>
