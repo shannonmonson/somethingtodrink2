@@ -1,0 +1,46 @@
+@import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Archivo Black", sans-serif;
+  --font-hand: "Indie Flower", cursive;
+  --font-display: "Climate Crisis", sans-serif;
+  
+  --color-brand-primary: #FB3C0D;
+  --color-brand-secondary: #2D2926;
+  --color-bg-base: #FDFCF9;
+  --color-bg-alt: #F5F2ED;
+  --color-border-subtle: #E6E1D6;
+  --color-text-main: #2D2926;
+  --color-text-muted: #8E8A82;
+}
+
+body {
+  @apply bg-bg-base text-text-main selection:bg-brand-primary selection:text-white antialiased;
+}
+
+.organic-text {
+  @apply font-display;
+  -webkit-font-smoothing: antialiased;
+  -webkit-filter: contrast(1.05) brightness(0.98);
+  filter: contrast(1.05) brightness(0.98);
+  text-shadow: 0.5px 0.5px 0px rgba(0,0,0,0.02);
+}
+
+.painted-block {
+  @apply relative;
+  transform: rotate(-1deg);
+}
+
+.handwritten {
+  @apply font-hand text-lg leading-relaxed;
+}
+
+/* Subtle ink bleed effect - optimized for mobile clarity */
+.ink-bleed {
+  -webkit-font-smoothing: antialiased;
+  -webkit-filter: contrast(1.1);
+  filter: contrast(1.1);
+}
+

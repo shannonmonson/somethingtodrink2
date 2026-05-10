@@ -1,0 +1,63 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Public and private user information",
+      "type": "object",
+      "properties": {
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "bio": { "type": "string" },
+        "showWishlist": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["displayName", "photoURL"]
+    },
+    "Post": {
+      "title": "Beverage Post",
+      "description": "A shared beverage log",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userPhoto": { "type": "string" },
+        "drinkName": { "type": "string" },
+        "category": { "type": "string", "enum": ["Coffee", "Wine", "Beer", "Cocktail", "Other"] },
+        "caption": { "type": "string" },
+        "rating": { "type": "number" },
+        "imageUrl": { "type": "string" },
+        "locationName": { "type": "string" },
+        "city": { "type": "string" },
+        "latitude": { "type": "number" },
+        "longitude": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "drinkName", "imageUrl"]
+    },
+    "Follow": {
+      "title": "Follow Relationship",
+      "description": "User follow status",
+      "type": "object",
+      "properties": {
+        "followerId": { "type": "string" },
+        "followedId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["followerId", "followedId"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile documents"
+    },
+    "/posts/{postId}": {
+      "schema": "Post",
+      "description": "Beverage log entries"
+    },
+    "/follows/{followId}": {
+      "schema": "Follow",
+      "description": "User connections"
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Something to Drink",
+  "description": "A social drinking app for sharing daily drinks, discovering new spots, and mapping recommendations with friends.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": []
+}

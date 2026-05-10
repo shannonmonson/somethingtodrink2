@@ -1,0 +1,51 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) && isValidUser(incoming()) && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'bio', 'showWishlist'])
+      );
+    }
+
+    function isValidUser(data) {
+      return data.displayName is string && data.displayName.size() <= 100 &&
+             data.photoURL is string && data.photoURL.size() <= 1000000 &&
+             (!('bio' in data) || (data.bio is string && data.bio.size() <= 500));
+    }
+
+    match /posts/{postId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isOwner(incoming().userId) && isValidPost(incoming());
+      allow delete: if isSignedIn() && isOwner(existing().userId);
+    }
+
+    function isValidPost(data) {
+      return data.userId == request.auth.uid &&
+             data.drinkName is string && data.drinkName.size() <= 200 &&
+             data.imageUrl is string && data.imageUrl.size() <= 1000000;
+    }
+
+    match /follows/{followId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isOwner(incoming().followerId);
+      allow delete: if isSignedIn() && isOwner(existing().followerId);
+    }
+
+    match /locations/{locId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && isOwner(incoming().userId);
+      allow delete: if isSignedIn() && isOwner(existing().userId);
+    }
+  }
+}
